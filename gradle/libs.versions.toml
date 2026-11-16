@@ -1,0 +1,45 @@
+[versions]
+agp = "8.13.2"
+kotlin = "2.4.21"
+
+# AndroidX / Compose
+coreKtx = "1.18.0"
+activityCompose = "1.13.0"
+# BOM 2026.06.01 maps to Compose UI 1.11.4 / Material3 1.4.0. Both are built for
+# compileSdk 35-36 and AGP 8.6. Later BOMs (2026.08+) move UI to 1.12, which
+# requires compileSdk 37 and AGP 9.1. compileSdk is 36, targetSdk stays 35.
+composeBom = "2026.06.01"
+coroutines = "1.10.2"
+
+# Modern Xposed API
+#
+# API level 100 was never published as a Maven artifact. The first stable
+# release of the modern API is 101.0.0 (API level 101), followed by 101.0.1.
+# Both are "API 100+" and are what LSPosed / Vector actually ship today.
+# `minApiVersion=101` in module.prop matches these artifacts.
+libxposedApi = "101.0.1"
+libxposedService = "101.0.0"
+
+# Dynamic DEX matching
+dexkit = "2.3.0"
+
+[libraries]
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+
+libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposedApi" }
+libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposedService" }
+dexkit = { module = "org.luckypray:dexkit", version.ref = "dexkit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

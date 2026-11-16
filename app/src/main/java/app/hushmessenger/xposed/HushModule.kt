@@ -1,0 +1,210 @@
+package app.hushmessenger.xposed
+
+import android.content.pm.ApplicationInfo
+import android.os.Build
+import android.util.Log
+import app.hushmessenger.xposed.core.FeatureState
+import app.hushmessenger.xposed.core.Features
+import app.hushmessenger.xposed.core.RESCAN_KEY
+import app.hushmessenger.xposed.core.SETTINGS_GROUP
+import app.hushmessenger.xposed.core.TARGET_PACKAGE
+import app.hushmessenger.xposed.dex.DescriptorCache
+import app.hushmessenger.xposed.dex.DexKitEngine
+import app.hushmessenger.xposed.dex.DexKitLoader
+import app.hushmessenger.xposed.dex.MethodRef
+import app.hushmessenger.xposed.hooking.HookInstaller
+import io.github.libxposed.api.XposedModule
+import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
+import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
+import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
+import java.io.File
+import java.util.concurrent.ConcurrentHashMap
+
+/**
+ * Modern Xposed entry point.
+ *
+ * Lifecycle:
+ *  1. onPackageLoaded: read switches, resolve (or load cached) descriptors with
+ *     DexKit against the Messenger APK. The classloader is not needed yet.
+ *  2. onPackageReady: resolve descriptors to java.lang.reflect.Method on the
+ *     now-ready host classloader and install interceptor hooks.
+ */
+class HushModule : XposedModule() {
+
+    private val pending = ConcurrentHashMap<String, Map<String, List<MethodRef>>>()
+
+    override fun onModuleLoaded(param: ModuleLoadedParam) {
+        log(
+            Log.INFO,
+            TAG,
+            "loaded in ${param.processName}; framework=$frameworkName " +
+                "$frameworkVersionCode api=$apiVersion",
+        )
+    }
+
+    override fun onPackageLoaded(param: PackageLoadedParam) {
+        if (param.packageName != TARGET_PACKAGE) return
+        if (!param.isFirstPackage) return
+
+        // onPackageLoaded only exists on Android 10+, so this is an early scan.
+        // onPackageReady repeats it if the callback never arrives (Android 8-9).
+        prepare(param.applicationInfo)?.let {
+            pending[param.packageName] = it
+        }
+    }
+
+    override fun onPackageReady(param: PackageReadyParam) {
+        if (param.packageName != TARGET_PACKAGE) return
+
+        val resolved = pending.remove(param.packageName)
+            ?: prepare(param.applicationInfo)
+            ?: return
+        val state = readState()
+        if (!state.anyEnabled) return
+
+        HookInstaller(
+            module = this,
+            classLoader = param.classLoader,
+            state = state,
+        ).install(resolved)
+    }
+
+    /**
+     * Reads the switches, then either loads the descriptor cache or runs DexKit.
+     * Returns null when nothing should be installed.
+     */
+    private fun prepare(
+        info: ApplicationInfo,
+    ): Map<String, List<MethodRef>>? {
+        val state = readState()
+        if (!state.anyEnabled) {
+            log(Log.INFO, TAG, "no HushMessenger features enabled; nothing to resolve")
+            return null
+        }
+
+        val versionCode = versionCode(info)
+        val needed = neededKeys(state)
+        if (needed.isEmpty()) {
+            // Nothing to resolve; install the feature hooks that use stable names.
+            return emptyMap()
+        }
+
+        // RemotePreferences are read-only here, so the descriptor cache lives in
+        // Messenger's own files directory. The settings app can only drop a
+        // rescan token into the settings group; comparing it against the token
+        // stored with the cache is what makes the "rescan" button work.
+        val cache = DescriptorCache(
+            dataDir = File(info.dataDir, "files"),
+            versionCode = versionCode,
+        )
+        val rescanToken = runCatching {
+            getRemotePreferences(SETTINGS_GROUP).getLong(RESCAN_KEY, 0L)
+        }.getOrDefault(0L)
+
+        val entry = cache.read()
+        val rescanRequested = entry != null && entry.rescanToken != rescanToken
+        val usable = entry != null &&
+            !rescanRequested &&
+            entry.scanned.containsAll(needed)
+        val resolved: Map<String, List<MethodRef>> = when {
+            usable -> {
+                log(Log.INFO, TAG, "using cached descriptors for $versionCode")
+                entry?.resolved.orEmpty()
+            }
+            !DexKitLoader.ensure(getModuleApplicationInfo()) -> {
+                // The cache may still cover a previous successful scan, and
+                // screenshot hooks need no descriptors at all.
+                log(Log.ERROR, TAG, "DexKit unavailable; using cached descriptors only")
+                return entry?.resolved.orEmpty()
+            }
+            else -> {
+                val fresh = runCatching {
+                    DexKitEngine(info.sourceDir).resolve(needed)
+                }.getOrElse {
+                    log(Log.ERROR, TAG, "DexKit resolution failed", it)
+                    null
+                }
+                if (fresh == null) {
+                    // The bridge could not be created. Do not cache an empty
+                    // result; keep whatever a previous scan produced.
+                    log(Log.ERROR, TAG, "DexKit scan unavailable; keeping cached descriptors")
+                    return entry?.resolved.orEmpty()
+                }
+                // A requested rescan starts from scratch so descriptors for a
+                // method that no longer exists cannot linger. A scan that only
+                // adds newly enabled features keeps the rest.
+                val base = if (rescanRequested) {
+                    emptyMap<String, List<MethodRef>>()
+                } else {
+                    entry?.resolved.orEmpty()
+                }
+                val merged = base + fresh
+                val scanned = (if (rescanRequested) emptySet<String>() else entry?.scanned.orEmpty()) + needed
+                cache.write(merged, scanned, rescanToken)
+                merged
+            }
+        }
+
+        log(
+            Log.INFO,
+            TAG,
+            "resolved ${resolved.size} descriptor groups for $versionCode " +
+                "(features=${state.enabledKeys()})",
+        )
+        return resolved
+    }
+
+    private fun readState(): FeatureState = FeatureState(
+        runCatching { getRemotePreferences(SETTINGS_GROUP) }.getOrNull(),
+    )
+
+    private fun neededKeys(state: FeatureState): Set<String> = buildSet {
+        if (state.isOn(Features.READ_RECEIPTS)) add("read_seen")
+        if (state.isOn(Features.TYPING)) {
+            add("typing_mailbox")
+            add("typing_run")
+        }
+        if (state.isOn(Features.ADS)) {
+            addAll(
+                listOf(
+                    "ads.banner",
+                    "ads.inbox_promo",
+                    "ads.chat_promo",
+                    "ads.entry",
+                    "ads.tracker",
+                    "ads.logger",
+                ),
+            )
+        }
+        if (state.isOn(Features.META_AI)) {
+            addAll(
+                listOf(
+                    "ai.tab",
+                    "ai.muse",
+                    "ai.toolbar",
+                    "ai.stickers",
+                    "ai.summary",
+                    "ai.mentions",
+                ),
+            )
+        }
+        if (state.isOn(Features.STORIES)) {
+            addAll(listOf("stories.gate", "stories.reels_badge", "stories.finish"))
+        }
+        if (state.isOn(Features.SCREENSHOTS)) {
+            // The viewer methods themselves are found by stable class name; only
+            // the window-flag helper and Android 14's capture callback need DEX
+            // matching.
+            addAll(listOf("screenshots.window_helper", "screenshots.capture"))
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun versionCode(info: ApplicationInfo): Long =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode
+        else info.versionCode.toLong()
+
+    companion object {
+        private const val TAG = "HushXposed"
+    }
+}

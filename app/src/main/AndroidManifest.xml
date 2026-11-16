@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- targetSdk 35: package visibility filtering would otherwise hide
+         Messenger's version name from the settings screen. -->
+    <queries>
+        <package android:name="com.facebook.orca" />
+    </queries>
+
+    <application
+        android:name=".HushApp"
+        android:allowBackup="false"
+        android:description="@string/module_description"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.HushMessengerXposed">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            Legacy Xposed metadata. Modern libxposed frameworks read
+            META-INF/xposed/*, but LSPosed and Vector still show the module
+            immediately when these are present.
+        -->
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+        <meta-data
+            android:name="xposeddescription"
+            android:value="@string/module_description" />
+        <meta-data
+            android:name="xposedminversion"
+            android:value="93" />
+    </application>
+
+</manifest>

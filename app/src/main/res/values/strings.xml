@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HushMessenger Xposed</string>
+    <string name="module_description">Privacy and cleanup controls for Facebook Messenger, powered by the Modern Xposed API.</string>
+
+    <string name="settings_subtitle">Privacy and cleanup controls for Messenger. Everything is opt-in.</string>
+
+    <string name="status_connected">Connected to the Xposed framework</string>
+    <string name="status_disconnected">Waiting for the Xposed framework</string>
+    <string name="status_enable_hint">Enable this module for Messenger in LSPosed or Vector, then reopen this app.</string>
+    <string name="status_restart">Changes apply after Messenger restarts. The hook reads your switches when Messenger loads and does not hot-swap while it is running.</string>
+    <string name="resolver_idle">The descriptor scan runs once per Messenger version and is cached inside Messenger\'s data directory.</string>
+    <string name="rescan_action">Rescan Messenger on next start</string>
+    <string name="rescan_done">Rescan requested — restart Messenger</string>
+
+    <string name="messenger_missing">Messenger is not installed</string>
+</resources>
