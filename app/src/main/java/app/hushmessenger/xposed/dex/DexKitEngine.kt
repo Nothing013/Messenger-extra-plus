@@ -65,14 +65,13 @@ class DexKitEngine(private val apkPath: String) {
         // but never broadcasts Seen.
         find(
             dex, "read_seen", needed,
-            matcher {
-                modifiers = Modifier.STATIC
-                returnType("void")
-                paramCount(3)
-                paramTypes(FB_USER_SESSION, null, "java.lang.String")
-                usingStrings(SEEN_JOB)
-            },
-        )
+        ) {
+            modifiers = Modifier.STATIC
+            returnType("void")
+            paramCount(3)
+            paramTypes(FB_USER_SESSION, null, "java.lang.String")
+            usingStrings(SEEN_JOB)
+        }
     }
 
     // ------------------------------------------------------------------ typing
@@ -83,12 +82,11 @@ class DexKitEngine(private val apkPath: String) {
             // the msys mailbox call. The hook rewrites the boolean to false.
             find(
                 dex, "typing_mailbox", needed,
-                matcher {
-                    paramCount(2)
-                    paramTypes("java.lang.String", "boolean")
-                    usingStrings(TYPING_MAILBOX)
-                },
-            )
+            ) {
+                paramCount(2)
+                paramTypes("java.lang.String", "boolean")
+                usingStrings(TYPING_MAILBOX)
+            }
         }
 
         if ("typing_run" !in needed) return
@@ -148,21 +146,20 @@ class DexKitEngine(private val apkPath: String) {
         // four Strings)V that fills ad_id and page_id, then logs.
         find(
             dex, "ads.entry", needed,
-            matcher {
-                modifiers = Modifier.STATIC
-                returnType("void")
-                paramCount(6)
-                paramTypes(
-                    null,
-                    FB_USER_SESSION,
-                    "java.lang.String",
-                    "java.lang.String",
-                    "java.lang.String",
-                    "java.lang.String",
-                )
-                usingStrings(AD_ID)
-            },
-        )
+        ) {
+            modifiers = Modifier.STATIC
+            returnType("void")
+            paramCount(6)
+            paramTypes(
+                null,
+                FB_USER_SESSION,
+                "java.lang.String",
+                "java.lang.String",
+                "java.lang.String",
+                "java.lang.String",
+            )
+            usingStrings(AD_ID)
+        }
 
         if ("ads.tracker" !in needed && "ads.logger" !in needed) return
 
@@ -170,13 +167,12 @@ class DexKitEngine(private val apkPath: String) {
         // that names both the tracker and its inbox2_vr event.
         val tracker = find(
             dex, "ads.tracker", needed,
-            matcher {
-                returnType("void")
-                paramCount(2)
-                paramTypes(null, "boolean")
-                usingStrings(INBOX_EVENT)
-            },
-        ).firstOrNull()
+        ) {
+            returnType("void")
+            paramCount(2)
+            paramTypes(null, "boolean")
+            usingStrings(INBOX_EVENT)
+        }.firstOrNull()
 
         if ("ads.logger" !in needed || tracker == null) return
 
@@ -261,13 +257,12 @@ class DexKitEngine(private val apkPath: String) {
         for (plugin in AI_MENTION_PLUGINS) {
             find(
                 dex, "ai.mentions", needed,
-                matcher {
-                    returnType("void")
-                    paramCount(2)
-                    paramTypes(null, MENTION_LIST_BUILDER)
-                    usingStrings(plugin)
-                },
-            )
+            ) {
+                returnType("void")
+                paramCount(2)
+                paramTypes(null, MENTION_LIST_BUILDER)
+                usingStrings(plugin)
+            }
         }
     }
 
@@ -290,12 +285,11 @@ class DexKitEngine(private val apkPath: String) {
         if ("stories.finish" in needed) {
             val completions: List<MethodData> = find(
                 dex, "stories.finish", needed,
-                matcher {
-                    returnType("void")
-                    paramCount(0)
-                    usingStrings(STORY_FINISHED)
-                },
-            )
+            ) {
+                returnType("void")
+                paramCount(0)
+                usingStrings(STORY_FINISHED)
+            }
             val instance = completions.filter { it.modifiers and Modifier.STATIC == 0 }
             results["stories.finish"] = instance.map { it.toMethodRef() }.toMutableList()
             if (instance.isEmpty()) results.remove("stories.finish")
@@ -382,12 +376,11 @@ class DexKitEngine(private val apkPath: String) {
         for (anchor in anchors) {
             find(
                 dex, key, needed,
-                matcher {
-                    returnType("boolean")
-                    paramCount(0, 1)
-                    usingStrings(anchor)
-                },
-            )
+            ) {
+                returnType("boolean")
+                paramCount(0, 1)
+                usingStrings(anchor)
+            }
         }
     }
 
