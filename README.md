@@ -125,11 +125,13 @@ DexKit matches against Messenger's APK path and produces classloader-neutral des
 binary.ClassName|methodName|param1,param2|returnType
 ```
 
-They are stored in `files/hush_xposed/descriptors-<versionCode>.txt` inside Messenger's own data
+They are stored in `files/hush_xposed/descriptors-<buildKey>.txt` inside Messenger's own data
 directory, together with the set of queries already attempted and the rescan token the hook last
-saw. The hook runs as Messenger, so this is writable; RemotePreferences are **read-only** in a
-hooked app and therefore cannot hold a cache built at runtime. The scan runs once per Messenger
-version, and files for older versions are pruned on the next save.
+saw. `buildKey` is the base APK's size plus timestamp (`ApplicationInfo` has no version code),
+which changes on every Messenger install. The hook runs as Messenger, so this is writable;
+RemotePreferences are **read-only** in a hooked app and therefore cannot hold a cache built at
+runtime. The scan runs once per Messenger build, and files for older builds are pruned on the next
+save.
 
 The settings screen's **Rescan Messenger on next start** button writes a new `rescan_at` token
 into `hush_settings`. The hook compares it with the token stored beside the cache, rescans once

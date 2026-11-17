@@ -53,17 +53,17 @@ import app.hushmessenger.xposed.core.TARGET_PACKAGE
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private val privacyFeatures = listOf(
+private val privacyFeatures: List<Feature> = listOf(
     Features.READ_RECEIPTS,
     Features.TYPING,
     Features.SCREENSHOTS,
-)
+).mapNotNull(Features::byKey)
 
-private val cleanupFeatures = listOf(
+private val cleanupFeatures: List<Feature> = listOf(
     Features.ADS,
     Features.META_AI,
     Features.STORIES,
-)
+).mapNotNull(Features::byKey)
 
 private data class UiMeta(
     val connected: Boolean = false,

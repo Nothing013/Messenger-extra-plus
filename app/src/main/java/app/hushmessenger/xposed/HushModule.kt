@@ -1,7 +1,6 @@
 package app.hushmessenger.xposed
 
 import android.content.pm.ApplicationInfo
-import android.os.Build
 import android.util.Log
 import app.hushmessenger.xposed.core.FeatureState
 import app.hushmessenger.xposed.core.Features
@@ -82,7 +81,7 @@ class HushModule : XposedModule() {
             return null
         }
 
-        val versionCode = versionCode(info)
+        val cacheKey = buildKey(info)
         val needed = neededKeys(state)
         if (needed.isEmpty()) {
             // Nothing to resolve; install the feature hooks that use stable names.
@@ -95,7 +94,7 @@ class HushModule : XposedModule() {
         // stored with the cache is what makes the "rescan" button work.
         val cache = DescriptorCache(
             dataDir = File(info.dataDir, "files"),
-            versionCode = versionCode,
+            buildKey = cacheKey,
         )
         val rescanToken = runCatching {
             getRemotePreferences(SETTINGS_GROUP).getLong(RESCAN_KEY, 0L)
@@ -108,7 +107,7 @@ class HushModule : XposedModule() {
             entry.scanned.containsAll(needed)
         val resolved: Map<String, List<MethodRef>> = when {
             usable -> {
-                log(Log.INFO, TAG, "using cached descriptors for $versionCode")
+                log(Log.INFO, TAG, "using cached descriptors for $cacheKey")
                 entry?.resolved.orEmpty()
             }
             !DexKitLoader.ensure(getModuleApplicationInfo()) -> {
@@ -148,7 +147,7 @@ class HushModule : XposedModule() {
         log(
             Log.INFO,
             TAG,
-            "resolved ${resolved.size} descriptor groups for $versionCode " +
+            "resolved ${resolved.size} descriptor groups for $cacheKey " +
                 "(features=${state.enabledKeys()})",
         )
         return resolved
@@ -199,10 +198,19 @@ class HushModule : XposedModule() {
         }
     }
 
-    @Suppress("DEPRECATION")
-    private fun versionCode(info: ApplicationInfo): Long =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode
-        else info.versionCode.toLong()
+    /**
+     * Identifies the installed Messenger build for the descriptor cache.
+     *
+     * [ApplicationInfo] carries no version code; that lives on [android.content.pm.PackageInfo],
+     * which would need a PackageManager this early in process startup. The base APK's
+     * size and timestamp change on every install, and Android places each install in
+     * a fresh directory, so the pair is a stable per-build key that needs no framework
+     * access. A failed stat ("0-0") simply disables cache reuse.
+     */
+    private fun buildKey(info: ApplicationInfo): String {
+        val apk = File(info.sourceDir)
+        return "${apk.length()}-${apk.lastModified()}"
+    }
 
     companion object {
         private const val TAG = "HushXposed"

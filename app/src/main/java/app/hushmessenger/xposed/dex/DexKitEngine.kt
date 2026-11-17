@@ -3,6 +3,7 @@ package app.hushmessenger.xposed.dex
 import android.util.Log
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.FindMethod
+import org.luckypray.dexkit.query.matchers.MethodMatcher
 import org.luckypray.dexkit.result.ClassData
 import org.luckypray.dexkit.result.MethodData
 import java.lang.reflect.Modifier
@@ -394,10 +395,10 @@ class DexKitEngine(private val apkPath: String) {
         dex: DexKitBridge,
         key: String,
         needed: Set<String>,
-        init: FindMethod.() -> Unit,
+        build: MethodMatcher.() -> Unit,
     ): List<MethodData> {
         if (key !in needed) return emptyList()
-        val refs = findMethods(dex, key, init)
+        val refs = findMethods(dex, key) { matcher(build) }
         add(key, needed, refs)
         return refs
     }

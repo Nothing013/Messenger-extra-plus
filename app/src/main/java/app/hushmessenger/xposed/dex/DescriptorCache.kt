@@ -4,23 +4,23 @@ import android.util.Log
 import java.io.File
 
 /**
- * Descriptor cache keyed by Messenger's versionCode.
+ * Descriptor cache keyed by the installed Messenger build.
  *
  * The cache lives in Messenger's own data directory, because the hook process
  * runs as Messenger and can write there. RemotePreferences are read-only inside
  * a hooked app, so they cannot hold a cache built at runtime; they only carry
  * the user's switches and the rescan token written by the settings app.
  *
- * A Messenger update changes versionCode, so the new version starts with no
- * cache and the file for the old version is removed on the next save.
+ * A Messenger update changes the key, so the new version starts with no cache
+ * and the file for the old version is removed on the next save.
  *
  * `scanned` records which queries have been attempted, so a query that
  * legitimately finds nothing does not force a rescan on every cold boot.
  */
-class DescriptorCache(dataDir: File?, versionCode: Long) {
+class DescriptorCache(dataDir: File?, buildKey: String) {
 
     private val directory = dataDir?.let { File(it, "hush_xposed") }
-    private val file = directory?.let { File(it, "descriptors-$versionCode.txt") }
+    private val file = directory?.let { File(it, "descriptors-$buildKey.txt") }
 
     data class Entry(
         val resolved: Map<String, List<MethodRef>>,
@@ -75,7 +75,7 @@ class DescriptorCache(dataDir: File?, versionCode: Long) {
     companion object {
         private const val TAG = "HushXposed"
         private const val SCHEMA = "3"
-        private val VERSIONED = Regex("""^descriptors-\d+\.txt$""")
+        private val VERSIONED = Regex("""^descriptors-[\w.-]+\.txt$""")
 
         fun encode(
             resolved: Map<String, List<MethodRef>>,
