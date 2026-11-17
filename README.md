@@ -32,7 +32,7 @@ written against the modern API surface, not the legacy one.
 
 ## Requirements
 
-- Android 8.0+ (`minSdk 26`), `targetSdk 35`
+- Android 8.0+ (`minSdk 26`), `compileSdk`/`targetSdk` 37 (Android 17)
 - An Xposed framework with Modern Xposed API support
   (LSPosed 1.9.x+ or Vector; legacy-only frameworks are not supported)
 - Messenger `588.0.0.20.98` (versionCode `347610355`) is the tested build. Other versions work on

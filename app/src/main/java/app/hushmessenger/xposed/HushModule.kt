@@ -61,11 +61,15 @@ class HushModule : XposedModule() {
         val state = readState()
         if (!state.anyEnabled) return
 
-        HookInstaller(
-            module = this,
-            classLoader = param.classLoader,
-            state = state,
-        ).install(resolved)
+        runCatching {
+            HookInstaller(
+                module = this,
+                classLoader = param.classLoader,
+                state = state,
+            ).install(resolved)
+        }.onFailure {
+            log(Log.ERROR, TAG, "hook installation failed", it)
+        }
     }
 
     /**

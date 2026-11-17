@@ -36,12 +36,30 @@ class HookInstaller(
     private val stringFieldCache = ConcurrentHashMap<Class<*>, List<Field>>()
 
     fun install(resolved: Map<String, List<MethodRef>>) {
-        if (state.isOn(Features.READ_RECEIPTS)) installReadReceipts(resolved)
-        if (state.isOn(Features.TYPING)) installTyping(resolved)
-        if (state.isOn(Features.ADS)) installAds(resolved)
-        if (state.isOn(Features.META_AI)) installMetaAi(resolved)
-        if (state.isOn(Features.SCREENSHOTS)) installScreenshots(resolved)
-        if (state.isOn(Features.STORIES)) installStories(resolved)
+        // Each feature installs in its own try/catch. A broken fingerprint,
+        // reflection failure or unexpected null in one feature must not stop
+        // the remaining features from installing.
+        isolated("read_receipts", Features.READ_RECEIPTS) { installReadReceipts(resolved) }
+        isolated("typing", Features.TYPING) { installTyping(resolved) }
+        isolated("ads", Features.ADS) { installAds(resolved) }
+        isolated("meta_ai", Features.META_AI) { installMetaAi(resolved) }
+        isolated("screenshots", Features.SCREENSHOTS) { installScreenshots(resolved) }
+        isolated("stories", Features.STORIES) { installStories(resolved) }
+    }
+
+    /**
+     * Runs one feature's installer in isolation.
+     *
+     * Hook *bodies* are already built with [XposedInterface.ExceptionMode.PROTECTIVE],
+     * so a throw inside a hook falls back to stock behaviour. This guard covers
+     * installer-time work as well (reflection, class lookups, argument parsing),
+     * where an exception would otherwise abort every later feature.
+     */
+    private inline fun isolated(name: String, key: String, block: () -> Unit) {
+        if (!state.isOn(key)) return
+        runCatching(block).onFailure {
+            module.log(Log.ERROR, TAG, "feature '$name' failed to install; continuing", it)
+        }
     }
 
     // ------------------------------------------------------------------ privacy

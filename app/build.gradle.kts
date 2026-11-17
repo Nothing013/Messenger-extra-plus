@@ -8,14 +8,16 @@ plugins {
 
 android {
     namespace = "app.hushmessenger.xposed"
-    // compileSdk 36 is required by activity 1.13 / core 1.18. targetSdk stays 35
-    // as requested; this does not change the runtime target.
-    compileSdk = 36
+    // Android 17 is API 37. compileSdkMinor = 0 selects the "android-37.0"
+    // platform package (AGP names minor platforms this way).
+    compileSdk = 37
+    compileSdkMinor = 0
+    buildToolsVersion = "37.0.0"
 
     defaultConfig {
         applicationId = "app.hushmessenger.xposed"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
     }
