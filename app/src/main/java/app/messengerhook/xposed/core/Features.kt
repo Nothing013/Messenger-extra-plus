@@ -1,7 +1,7 @@
-package app.hushmessenger.xposed.core
+package app.messengerhook.xposed.core
 
 /** RemotePreferences group holding the user's switches. Written by the settings app, read by the hook. */
-const val SETTINGS_GROUP = "hush_settings"
+const val SETTINGS_GROUP = "messenger_hook_settings"
 
 /**
  * Settings key the module app bumps to ask the hook to ignore its descriptor

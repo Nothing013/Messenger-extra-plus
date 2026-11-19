@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "app.hushmessenger.xposed"
+    namespace = "app.messengerhook.xposed"
     // Android 17 is API 37. compileSdkMinor = 0 selects the "android-37.0"
     // platform package (AGP names minor platforms this way).
     compileSdk = 37
@@ -15,7 +15,7 @@ android {
     buildToolsVersion = "37.0.0"
 
     defaultConfig {
-        applicationId = "app.hushmessenger.xposed"
+        applicationId = "app.messengerhook.xposed"
         minSdk = 26
         targetSdk = 37
         versionCode = 2

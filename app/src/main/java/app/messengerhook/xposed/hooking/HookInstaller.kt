@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.hooking
+package app.messengerhook.xposed.hooking
 
 import android.app.Dialog
 import android.content.Intent
@@ -8,10 +8,10 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
-import app.hushmessenger.xposed.core.FeatureState
-import app.hushmessenger.xposed.core.Features
-import app.hushmessenger.xposed.dex.DexKitEngine
-import app.hushmessenger.xposed.dex.MethodRef
+import app.messengerhook.xposed.core.FeatureState
+import app.messengerhook.xposed.core.Features
+import app.messengerhook.xposed.dex.DexKitEngine
+import app.messengerhook.xposed.dex.MethodRef
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.Chain
 import io.github.libxposed.api.XposedModule
@@ -21,7 +21,7 @@ import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Translates HushMessenger's register-level injections into interceptor hooks.
+ * Translates the patch's register-level injections into interceptor hooks.
  *
  * Xposed cannot edit DEX, so every patch becomes one of:
  *  - return early (void/object) by not calling chain.proceed(),
@@ -306,7 +306,7 @@ class HookInstaller(
         hookAll(resolved, "stories.gate", "stories.gate") { false }
         hookAll(resolved, "stories.reels_badge", "stories.reels_badge") { false }
 
-        // HushMessenger stops the viewer's advance instead of hiding the page.
+        // The patch stops the viewer's advance instead of hiding the page.
         // Returning early from the completion leaves the story on screen.
         hookAll(resolved, "stories.finish", "stories.finish") { null }
     }
@@ -439,7 +439,7 @@ class HookInstaller(
      * Hooks the candidate whose Redex `__redex_internal_original_name` matches.
      *
      * Redex renames synthetic classes but keeps the source name in that static
-     * field. It is the same field HushMessenger's patches read, and it tells
+     * field. It is the same field the patch reads, and it tells
      * the "started typing" runnable apart from the "stopped typing" one without
      * ever risking the latter. A lone candidate is accepted only when it has no
      * Redex name field at all (the name was stripped); an ambiguous set or a
@@ -519,7 +519,7 @@ class HookInstaller(
     }
 
     companion object {
-        private const val TAG = "HushXposed"
+        private const val TAG = "MessengerHook"
         private const val INBOX_IMPRESSION_EVENT = "inbox2_vr"
         private const val REVOKE_ACTION = "ACTION_REVOKE_MESSAGE"
         private const val MESSAGE_ID_EXTRA = "messenger_message_id"

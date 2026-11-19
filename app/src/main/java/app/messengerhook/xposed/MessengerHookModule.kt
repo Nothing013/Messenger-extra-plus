@@ -1,17 +1,17 @@
-package app.hushmessenger.xposed
+package app.messengerhook.xposed
 
 import android.content.pm.ApplicationInfo
 import android.util.Log
-import app.hushmessenger.xposed.core.FeatureState
-import app.hushmessenger.xposed.core.Features
-import app.hushmessenger.xposed.core.RESCAN_KEY
-import app.hushmessenger.xposed.core.SETTINGS_GROUP
-import app.hushmessenger.xposed.core.TARGET_PACKAGE
-import app.hushmessenger.xposed.dex.DescriptorCache
-import app.hushmessenger.xposed.dex.DexKitEngine
-import app.hushmessenger.xposed.dex.DexKitLoader
-import app.hushmessenger.xposed.dex.MethodRef
-import app.hushmessenger.xposed.hooking.HookInstaller
+import app.messengerhook.xposed.core.FeatureState
+import app.messengerhook.xposed.core.Features
+import app.messengerhook.xposed.core.RESCAN_KEY
+import app.messengerhook.xposed.core.SETTINGS_GROUP
+import app.messengerhook.xposed.core.TARGET_PACKAGE
+import app.messengerhook.xposed.dex.DescriptorCache
+import app.messengerhook.xposed.dex.DexKitEngine
+import app.messengerhook.xposed.dex.DexKitLoader
+import app.messengerhook.xposed.dex.MethodRef
+import app.messengerhook.xposed.hooking.HookInstaller
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap
  *  2. onPackageReady: resolve descriptors to java.lang.reflect.Method on the
  *     now-ready host classloader and install interceptor hooks.
  */
-class HushModule : XposedModule() {
+class MessengerHookModule : XposedModule() {
 
     private val pending = ConcurrentHashMap<String, Map<String, List<MethodRef>>>()
 
@@ -82,7 +82,7 @@ class HushModule : XposedModule() {
     ): Map<String, List<MethodRef>>? {
         val state = readState()
         if (!state.anyEnabled) {
-            log(Log.INFO, TAG, "no HushMessenger features enabled; nothing to resolve")
+            log(Log.INFO, TAG, "no features enabled; nothing to resolve")
             return null
         }
 
@@ -229,6 +229,6 @@ class HushModule : XposedModule() {
     }
 
     companion object {
-        private const val TAG = "HushXposed"
+        private const val TAG = "MessengerHook"
     }
 }

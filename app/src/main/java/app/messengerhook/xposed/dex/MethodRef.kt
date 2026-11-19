@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.dex
+package app.messengerhook.xposed.dex
 
 import org.luckypray.dexkit.result.MethodData
 import java.lang.reflect.Method

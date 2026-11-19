@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.dex
+package app.messengerhook.xposed.dex
 
 import android.util.Log
 import java.io.File
@@ -19,7 +19,7 @@ import java.io.File
  */
 class DescriptorCache(dataDir: File?, buildKey: String) {
 
-    private val directory = dataDir?.let { File(it, "hush_xposed") }
+    private val directory = dataDir?.let { File(it, "messenger_hook") }
     private val file = directory?.let { File(it, "descriptors-$buildKey.txt") }
 
     data class Entry(
@@ -73,7 +73,7 @@ class DescriptorCache(dataDir: File?, buildKey: String) {
     }
 
     companion object {
-        private const val TAG = "HushXposed"
+        private const val TAG = "MessengerHook"
         private const val SCHEMA = "3"
         private val VERSIONED = Regex("""^descriptors-[\w.-]+\.txt$""")
 

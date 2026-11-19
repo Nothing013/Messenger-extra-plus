@@ -1,7 +1,7 @@
-package app.hushmessenger.xposed
+package app.messengerhook.xposed
 
 import android.app.Application
-import app.hushmessenger.xposed.core.ServiceHolder
+import app.messengerhook.xposed.core.ServiceHolder
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 
@@ -12,7 +12,7 @@ import io.github.libxposed.service.XposedServiceHelper
  * manifest; the provider forwards the binder that [XposedServiceHelper] hands to
  * this listener. Only in-memory state is touched here.
  */
-class HushApp : Application() {
+class MessengerHookApp : Application() {
 
     override fun onCreate() {
         super.onCreate()

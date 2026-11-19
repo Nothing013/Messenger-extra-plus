@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.hooking
+package app.messengerhook.xposed.hooking
 
 /**
  * Marks the current thread as executing inside a protected media viewer.

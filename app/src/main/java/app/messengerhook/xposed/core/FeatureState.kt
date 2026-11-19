@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.core
+package app.messengerhook.xposed.core
 
 import android.content.SharedPreferences
 

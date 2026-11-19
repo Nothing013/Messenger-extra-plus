@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.hooking
+package app.messengerhook.xposed.hooking
 
 import android.util.Log
 import java.io.File
@@ -8,7 +8,7 @@ import java.io.File
  *
  * The hook process runs as Messenger, so the store lives in Messenger's own
  * files directory rather than in RemotePreferences (which are read-only in a
- * hooked app). One id per line, oldest first, bounded like HushMessenger's own
+ * hooked app). One id per line, oldest first, bounded like the patch's own
  * `kept_unsent_ids` set.
  *
  * Messenger runs notification handling in more than one process. Every write
@@ -19,7 +19,7 @@ import java.io.File
  */
 class KeptUnsent(dataDir: File?) {
 
-    private val file = dataDir?.let { File(File(it, "hush_xposed"), "kept_unsent.txt") }
+    private val file = dataDir?.let { File(File(it, "messenger_hook"), "kept_unsent.txt") }
     private val lock = Any()
     private val ordered = LinkedHashSet<String>()
 
@@ -126,7 +126,7 @@ class KeptUnsent(dataDir: File?) {
     }.getOrDefault(0L)
 
     companion object {
-        private const val TAG = "HushXposed"
+        private const val TAG = "MessengerHook"
         private const val LIMIT = 4096
         private const val REFRESH_MILLIS = 1000L
     }

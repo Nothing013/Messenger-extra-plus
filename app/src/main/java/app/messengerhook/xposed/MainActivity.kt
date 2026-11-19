@@ -1,11 +1,11 @@
-package app.hushmessenger.xposed
+package app.messengerhook.xposed
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import app.hushmessenger.xposed.ui.HushTheme
-import app.hushmessenger.xposed.ui.SettingsScreen
+import app.messengerhook.xposed.ui.MessengerHookTheme
+import app.messengerhook.xposed.ui.SettingsScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            HushTheme {
+            MessengerHookTheme {
                 SettingsScreen()
             }
         }

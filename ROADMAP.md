@@ -17,7 +17,7 @@ These layers already exist; new features must use them.
    feature in `isolated(...)`. An exception in one installer is logged as
    `feature '<name>' failed to install; continuing` and the rest still install.
 2. **Per-query DexKit isolation.** Every fingerprint runs through `runCatching`,
-   and the whole scan is wrapped again in `HushModule.prepare`. A missing or
+   and the whole scan is wrapped again in `MessengerHookModule.prepare`. A missing or
    broken query logs `query <key> failed` and resolves nothing for that key.
 3. **Protective hook bodies.** Every hook is registered with
    `ExceptionMode.PROTECTIVE`: a throw before `chain.proceed()` behaves as if
@@ -28,7 +28,7 @@ These layers already exist; new features must use them.
    starts. Restart Messenger after changing them.
 
 If a feature misbehaves, turn only that switch off, force-stop Messenger, and
-check `adb logcat -s HushXposed`. No need to uninstall the module.
+check `adb logcat -s MessengerHook`. No need to uninstall the module.
 
 ---
 
@@ -36,7 +36,7 @@ check `adb logcat -s HushXposed`. No need to uninstall the module.
 
 1. Add a key and a `Feature(...)` entry to `core/Features.kt` (default off).
 2. Add the query to `dex/DexKitEngine.kt` under a new key, and add the key to
-   `HushModule.neededKeys()` when its switch is on.
+   `MessengerHookModule.neededKeys()` when its switch is on.
 3. Verify the fingerprint against the installed Messenger APK before hooking it.
 4. Add `installX()` to `hooking/HookInstaller.kt` and one `isolated(...)` line.
 5. Build, enable **only** the new switch, force-stop Messenger, test.
@@ -48,7 +48,7 @@ This keeps the blast radius of a bad guess to one switch and one log line.
 
 ## Tier 2 candidates
 
-From the HushMessenger patch catalogue, grouped by risk. Names are the patch
+From the upstream patch catalogue, grouped by risk. Names are the patch
 names; fingerprints still need to be resolved against the current Messenger
 build before each one ships.
 
@@ -87,7 +87,7 @@ feature and a longer observation window before enabling the next one.
 
 - **Keep unsent messages — done.** `unsent.keep`, `unsent.recall`,
   `unsent.id`, `unsent.state` and `unsent.text`; ids persist in
-  `files/hush_xposed/kept_unsent.txt` on Messenger's data directory.
+  `files/messenger_hook/kept_unsent.txt` on Messenger's data directory.
 - Ignore the swipe up for disappearing messages
 - Hide Your story when sharing
 - Hide Mark as read

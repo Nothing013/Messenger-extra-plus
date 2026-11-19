@@ -1,8 +1,7 @@
-# HushMessenger Xposed
+# Messenger Hook
 
-A standalone Modern Xposed module for Facebook Messenger (`com.facebook.orca`) that ports the
-Tier 1 controls from the HushMessenger Morphe patch set from a patched-APK build to a runtime
-hook.
+A standalone Modern Xposed module for Facebook Messenger (`com.facebook.orca`) that turns the
+Tier 1 controls from the upstream Morphe patch set into runtime hooks on the stock app.
 
 It uses **only**:
 
@@ -44,7 +43,7 @@ written against the modern API surface, not the legacy one.
 ## Install
 
 1. Build or download `app-debug.apk`.
-2. Install it and open **HushMessenger Xposed** once.
+2. Install it and open **Messenger Hook** once.
 3. In LSPosed/Vector, enable the module and tick **Messenger** (`com.facebook.orca`).
 4. Force-stop Messenger (or reboot).
 5. Open the module, turn on the features you want.
@@ -100,7 +99,7 @@ is available; CI performs the first real build.
 - **Screenshots are viewer-scoped.** `FLAG_SECURE` is removed only while a protected viewer is
   running, not process-wide. This allows capturing view-once media without weakening every
   Messenger window.
-- **Fingerprints can miss.** Anchors come from the HushMessenger sources, and some releases move
+- **Fingerprints can miss.** Anchors come from the upstream patch sources, and some releases move
   gate names into Redex string tables. A missed anchor logs `not installed: <key>` and leaves
   stock behaviour in place.
 - **Tab filtering is not implemented.** Stories is an inbox unit, not a bottom-bar tab. The
@@ -111,7 +110,7 @@ is available; CI performs the first real build.
 ## How it works
 
 ```
-META-INF/xposed/java_init.list  ->  app.hushmessenger.xposed.HushModule
+META-INF/xposed/java_init.list  ->  app.messengerhook.xposed.MessengerHookModule
                                       |
 onPackageLoaded (com.facebook.orca)   |  read switches from RemotePreferences
                                       |  DexKit scan (or cached descriptors)
@@ -130,7 +129,7 @@ DexKit matches against Messenger's APK path and produces classloader-neutral des
 binary.ClassName|methodName|param1,param2|returnType
 ```
 
-They are stored in `files/hush_xposed/descriptors-<buildKey>.txt` inside Messenger's own data
+They are stored in `files/messenger_hook/descriptors-<buildKey>.txt` inside Messenger's own data
 directory, together with the set of queries already attempted and the rescan token the hook last
 saw. `buildKey` is the base APK's size plus timestamp (`ApplicationInfo` has no version code),
 which changes on every Messenger install. The hook runs as Messenger, so this is writable;
@@ -139,7 +138,7 @@ runtime. The scan runs once per Messenger build, and files for older builds are 
 save.
 
 The settings screen's **Rescan Messenger on next start** button writes a new `rescan_at` token
-into `hush_settings`. The hook compares it with the token stored beside the cache, rescans once
+into `messenger_hook_settings`. The hook compares it with the token stored beside the cache, rescans once
 from scratch when it differs, and records the token it used.
 
 The scan runs synchronously when Messenger starts, so the first start after a Messenger update
@@ -148,9 +147,9 @@ processes, which share the same file) read the cache without touching DexKit.
 
 ### Settings transport
 
-The settings app calls `XposedService.getRemotePreferences("hush_settings")` through the provider
+The settings app calls `XposedService.getRemotePreferences("messenger_hook_settings")` through the provider
 that `io.github.libxposed:service` merges into the manifest. The hook calls
-`XposedModule.getRemotePreferences("hush_settings")` in Messenger's process. Both sides therefore
+`XposedModule.getRemotePreferences("messenger_hook_settings")` in Messenger's process. Both sides therefore
 read the same framework-backed map — no shared files, no `WorldReadablePreferences`, no
 broadcast permissions. Only switches and the rescan token live there; the descriptor cache does
 not.
@@ -172,7 +171,7 @@ without extra secrets:
 ```
 
 GitHub Actions builds and uploads **both** the debug and release APKs on every push
-(`hushmessenger-xposed-debug`, `hushmessenger-xposed-release`). Pushing a `v*` tag additionally
+(`messenger-hook-debug`, `messenger-hook-release`). Pushing a `v*` tag additionally
 attaches the release APK to the GitHub release.
 
 ---
@@ -184,7 +183,7 @@ Modern metadata lives in `app/src/main/resources/META-INF/xposed/`:
 - `module.prop` — `minApiVersion=101`, `targetApiVersion=101`, `staticScope=true`,
   `exceptionMode=protective`
 - `scope.list` — `com.facebook.orca`
-- `java_init.list` — `app.hushmessenger.xposed.HushModule`
+- `java_init.list` — `app.messengerhook.xposed.MessengerHookModule`
 
 The manifest also keeps the legacy `xposedmodule` / `xposedminversion` metadata so LSPosed and
 Vector list the module immediately, even before they read the modern files.
@@ -193,10 +192,10 @@ Vector list the module immediately, even before they read the modern files.
 
 ## Logs
 
-Everything is logged under the tag `HushXposed`:
+Everything is logged under the tag `MessengerHook`:
 
 ```bash
-adb logcat -s HushXposed
+adb logcat -s MessengerHook
 ```
 
 Each install logs `hooked <feature> -> <class>#<method>`, and each miss logs
@@ -206,5 +205,5 @@ Each install logs `hooked <feature> -> <class>#<method>`, and each miss logs
 
 ## License
 
-Personal-use project. The fingerprint knowledge comes from HushMessenger and the
-De-Vanced-derived anchors documented in its sources.
+Personal-use project. The fingerprint knowledge comes from the upstream patch set
+and the De-Vanced-derived anchors documented in its sources.

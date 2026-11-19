@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.ui
+package app.messengerhook.xposed.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -32,7 +32,7 @@ private val DarkColors = darkColorScheme(
 )
 
 @Composable
-fun HushTheme(
+fun MessengerHookTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {

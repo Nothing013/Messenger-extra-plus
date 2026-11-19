@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "HushMessengerXposed"
+rootProject.name = "MessengerHook"
 include(":app")

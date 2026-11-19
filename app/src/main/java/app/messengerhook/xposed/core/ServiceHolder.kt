@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.core
+package app.messengerhook.xposed.core
 
 import io.github.libxposed.service.XposedService
 import kotlinx.coroutines.flow.MutableStateFlow

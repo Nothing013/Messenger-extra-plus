@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">HushMessenger Xposed</string>
+    <string name="app_name">Messenger Hook</string>
     <string name="module_description">Privacy and cleanup controls for Facebook Messenger, powered by the Modern Xposed API.</string>
 
     <string name="settings_subtitle">Privacy and cleanup controls for Messenger. Everything is opt-in.</string>

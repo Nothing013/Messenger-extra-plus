@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.dex
+package app.messengerhook.xposed.dex
 
 import android.util.Log
 import org.luckypray.dexkit.DexKitBridge
@@ -9,12 +9,12 @@ import org.luckypray.dexkit.result.MethodData
 import java.lang.reflect.Modifier
 
 /**
- * Runtime translation of the HushMessenger fingerprints (Tier 1 plus the
+ * Runtime translation of the upstream fingerprints (Tier 1 plus the
  * first Tier 2 control).
  *
- * Every query below is taken from the patch sources in the HushMessenger
- * repository and keeps their shape checks. Anchors are method-level string
- * literals, because that is how HushMessenger discovers the methods too:
+ * Every query below is taken from the upstream patch sources and keeps their
+ * shape checks. Anchors are method-level string literals, because that is how
+ * the patch discovers the methods too:
  * a gate is a boolean method that names its plugin, not a method on the plugin
  * class. Queries are run one anchor at a time so the result never depends on
  * whether DexKit's string list means "all" or "any".
@@ -612,7 +612,7 @@ class DexKitEngine(private val apkPath: String) {
         "$className|$name|${paramTypeNames.joinToString(",")}|$returnTypeName"
 
     companion object {
-        private const val TAG = "HushXposed"
+        private const val TAG = "MessengerHook"
 
         private const val FB_USER_SESSION = "com.facebook.auth.usersession.FbUserSession"
         private const val MENTION_LIST_BUILDER = "com.google.common.collect.ImmutableList\$Builder"

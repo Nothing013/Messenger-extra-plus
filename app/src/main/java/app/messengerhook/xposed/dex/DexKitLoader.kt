@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.dex
+package app.messengerhook.xposed.dex
 
 import android.content.pm.ApplicationInfo
 import android.util.Log
@@ -18,7 +18,7 @@ import java.io.File
  */
 object DexKitLoader {
 
-    private const val TAG = "HushXposed"
+    private const val TAG = "MessengerHook"
 
     @Volatile
     private var loaded = false

@@ -1,4 +1,4 @@
-package app.hushmessenger.xposed.ui
+package app.messengerhook.xposed.ui
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -43,13 +43,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import app.hushmessenger.xposed.R
-import app.hushmessenger.xposed.core.Feature
-import app.hushmessenger.xposed.core.Features
-import app.hushmessenger.xposed.core.RESCAN_KEY
-import app.hushmessenger.xposed.core.SETTINGS_GROUP
-import app.hushmessenger.xposed.core.ServiceHolder
-import app.hushmessenger.xposed.core.TARGET_PACKAGE
+import app.messengerhook.xposed.R
+import app.messengerhook.xposed.core.Feature
+import app.messengerhook.xposed.core.Features
+import app.messengerhook.xposed.core.RESCAN_KEY
+import app.messengerhook.xposed.core.SETTINGS_GROUP
+import app.messengerhook.xposed.core.ServiceHolder
+import app.messengerhook.xposed.core.TARGET_PACKAGE
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -205,7 +205,7 @@ fun SettingsScreen() {
             item {
                 Column {
                     Text(
-                        text = "HushMessenger",
+                        text = "Messenger Hook",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
