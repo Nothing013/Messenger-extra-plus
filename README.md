@@ -59,6 +59,10 @@ hooks mid-process. This keeps a call from seeing a hook set change underneath it
 
 All features default to **off**.
 
+The first six switches are the original Tier 1 port. **Keep unsent messages** is
+the first Tier 2 control; it ships on its own so it can be tested without the
+rest of Batch C.
+
 | Switch | What it does | Fingerprint / mechanism |
 | --- | --- | --- |
 | Hide read receipts | Skips Messenger's static Seen broadcast. The chat still updates locally; only the send is stopped. | Static `(FbUserSession, <handler>, String)V` naming `MARK_THREAD_AS_SEEN_JOB` |
@@ -67,6 +71,7 @@ All features default to **off**.
 | Hide ads and promotions | Disables the business-chat ad banner and the inbox/chat Quick Promotion gates, skips the click-to-message ad deep link, and drops the inbox ad impression at the shared logger. | `CTMAdsThreadViewBannerImplementation`, `QuickpromotionThreadlist*`, `QuickpromotionThreadview*`, `ad_id`, `inbox2_vr`; the logger is hooked once and checks the event object's String fields at runtime |
 | Hide Meta AI | Disables the Meta AI/MUSE tab, AI toolbar button and AI sticker tab gates, returns `false` from the summary eligibility check, and skips the Meta AI @-mention dispatchers. | `MetaAiTabContentImplementation`, `MuseTabContentImplementation`, `AiHomeButtonKillSwitch`, `KeyboardlsGeneratedtabCoreKillSwitch`, `AiSummaryFloatingPillEventHandler` (class-level: the pill and the check live in different methods), `MentionAiRowSupplier` |
 | Hide Stories and Reels | Disables the stories/notes inbox row and the Reels badge, and keeps a finished story on screen instead of advancing. | `FriendsInboxUnitKillSwitch`, `ReelsBadgeKillSwitch`, `story_playback_finished` |
+| Keep unsent messages | Holds back the revoke dispatcher, records the message id, keeps the row out of its unsent state, prefixes kept text with `[unsent] `, and keeps the notification for unsends that never reach the chat. | Instance `(Intent, FbUserSession, String, Map)V` naming `ACTION_REVOKE_MESSAGE`; instance `(FbUserSession, String, String, String)Z` naming `NotificationRecaller`; the row wrapper's `text=`/`message_id=`/`is_unsent=` getters, paired from DexKit's ordered opcode, invoke and string lists |
 
 ### Verification
 

@@ -18,7 +18,8 @@ data class Feature(
 )
 
 /**
- * Tier 1 only. Every switch starts off; nothing is hooked until the user opts in.
+ * Tier 1 plus the first Tier 2 control. Every switch starts off; nothing is
+ * hooked until the user opts in.
  *
  * Keep these keys stable: they are persisted in LSPosed's remote preferences and
  * are the same keys the hook reads.
@@ -30,6 +31,7 @@ object Features {
     const val ADS = "ads"
     const val META_AI = "meta_ai"
     const val STORIES = "stories"
+    const val KEEP_UNSENT = "keep_unsent"
 
     val all: List<Feature> = listOf(
         Feature(
@@ -67,6 +69,13 @@ object Features {
             "Hide Stories and Reels",
             "Hides the row of stories and notes above your chats and the Reels badge, " +
                 "and keeps a story on screen when it ends.",
+        ),
+        Feature(
+            KEEP_UNSENT,
+            "Keep unsent messages",
+            "Keeps a message in the chat after it is unsent and marks it with " +
+                "[unsent]. In end-to-end encrypted chats the message stays in its " +
+                "notification instead.",
         ),
     )
 

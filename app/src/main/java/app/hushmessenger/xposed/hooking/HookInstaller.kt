@@ -1,6 +1,7 @@
 package app.hushmessenger.xposed.hooking
 
 import android.app.Dialog
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -14,6 +15,7 @@ import app.hushmessenger.xposed.dex.MethodRef
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.Chain
 import io.github.libxposed.api.XposedModule
+import java.io.File
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
@@ -31,6 +33,7 @@ class HookInstaller(
     private val module: XposedModule,
     private val classLoader: ClassLoader,
     private val state: FeatureState,
+    private val dataDir: File?,
 ) {
 
     private val stringFieldCache = ConcurrentHashMap<Class<*>, List<Field>>()
@@ -45,6 +48,7 @@ class HookInstaller(
         isolated("meta_ai", Features.META_AI) { installMetaAi(resolved) }
         isolated("screenshots", Features.SCREENSHOTS) { installScreenshots(resolved) }
         isolated("stories", Features.STORIES) { installStories(resolved) }
+        isolated("keep_unsent", Features.KEEP_UNSENT) { installKeepUnsent(resolved) }
     }
 
     /**
@@ -307,6 +311,74 @@ class HookInstaller(
         hookAll(resolved, "stories.finish", "stories.finish") { null }
     }
 
+    // --------------------------------------------------------------- keep unsent
+
+    private fun installKeepUnsent(resolved: Map<String, List<MethodRef>>) {
+        val kept = KeptUnsent(dataDir)
+        val idGetter = resolved["unsent.id"]?.firstOrNull()?.toMethod(classLoader)
+        val stateGetter = resolved["unsent.state"]?.firstOrNull()?.toMethod(classLoader)
+        val textGetter = resolved["unsent.text"]?.firstOrNull()?.toMethod(classLoader)
+
+        // 1. Record the id and skip Messenger's revoke dispatcher. Only the
+        //    revoke action is held back: the same dispatcher also carries
+        //    missed-call and contact-change events, which stay untouched.
+        hookAll(resolved, "unsent.keep", "keep_unsent.record", limit = 2) { chain ->
+            val intent = chain.args.getOrNull(0) as? Intent
+            if (intent != null && intent.action?.contains(REVOKE_ACTION) == true) {
+                kept.record(intent.getStringExtra(MESSAGE_ID_EXTRA))
+                null
+            } else {
+                chain.proceed()
+            }
+        }
+
+        // 2. Keep the notification for an unsend that never reaches the chat,
+        //    and record its id so the row hooks below can match it.
+        hookAll(resolved, "unsent.recall", "keep_unsent.recall", limit = 2) { chain ->
+            kept.record(chain.args.getOrNull(1) as? String)
+            true
+        }
+
+        if (idGetter == null || stateGetter == null) {
+            logMissing("keep_unsent.row", null)
+            return
+        }
+
+        // 3. The wrapper says the row is unsent; answer false for kept ids so
+        //    the chat list keeps the message instead of the unsent placeholder.
+        install(stateGetter, "keep_unsent.state") { chain ->
+            val original = chain.proceed()
+            if (original == true) {
+                kept.refresh()
+                if (!kept.isEmpty) {
+                    val id = rowId(idGetter, chain.thisObject, chain.args)
+                    if (kept.contains(id)) false else original
+                } else {
+                    original
+                }
+            } else {
+                original
+            }
+        }
+
+        // 4. Mark the kept row so it is visibly different from a normal message.
+        if (textGetter != null) {
+            install(textGetter, "keep_unsent.label") { chain ->
+                val text = chain.proceed() as? String
+                if (text != null && !kept.isEmpty) {
+                    val id = rowId(idGetter, chain.thisObject, chain.args)
+                    if (kept.contains(id)) UNSENT_PREFIX + text else text
+                } else {
+                    text
+                }
+            }
+        }
+    }
+
+    /** Reads the wrapper row's message id with the same index the getter was called with. */
+    private fun rowId(getter: Method, receiver: Any?, args: List<Any?>): String? =
+        runCatching { getter.invoke(receiver, args.firstOrNull()) as? String }.getOrNull()
+
     // -------------------------------------------------------------------- engine
 
     private fun hook(
@@ -449,5 +521,8 @@ class HookInstaller(
     companion object {
         private const val TAG = "HushXposed"
         private const val INBOX_IMPRESSION_EVENT = "inbox2_vr"
+        private const val REVOKE_ACTION = "ACTION_REVOKE_MESSAGE"
+        private const val MESSAGE_ID_EXTRA = "messenger_message_id"
+        private const val UNSENT_PREFIX = "[unsent] "
     }
 }

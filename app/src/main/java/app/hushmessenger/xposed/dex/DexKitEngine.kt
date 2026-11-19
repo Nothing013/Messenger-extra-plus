@@ -9,7 +9,8 @@ import org.luckypray.dexkit.result.MethodData
 import java.lang.reflect.Modifier
 
 /**
- * Runtime translation of the HushMessenger Tier 1 fingerprints.
+ * Runtime translation of the HushMessenger fingerprints (Tier 1 plus the
+ * first Tier 2 control).
  *
  * Every query below is taken from the patch sources in the HushMessenger
  * repository and keeps their shape checks. Anchors are method-level string
@@ -47,6 +48,7 @@ class DexKitEngine(private val apkPath: String) {
                 metaAi(dex, needed)
                 stories(dex, needed)
                 screenshots(dex, needed)
+                keepUnsent(dex, needed)
             } catch (t: Throwable) {
                 Log.e(TAG, "DexKit query batch failed", t)
             }
@@ -360,6 +362,196 @@ class DexKitEngine(private val apkPath: String) {
         }
     }
 
+    // --------------------------------------------------------------- keep unsent
+
+    private fun keepUnsent(dex: DexKitBridge, needed: Set<String>) {
+        // The revoke dispatcher: instance (Intent, session, String, Map)V that
+        // names ACTION_REVOKE_MESSAGE. Returning early leaves the message in
+        // the chat instead of letting Messenger apply the unsend.
+        if ("unsent.keep" in needed) {
+            val keep = findMethods(dex, "unsent.keep") {
+                matcher {
+                    returnType("void")
+                    paramCount(4)
+                    paramTypes(INTENT, FB_USER_SESSION, "java.lang.String", "java.util.Map")
+                    usingStrings(REVOKE_ACTION)
+                }
+            }.filter { it.modifiers and Modifier.STATIC == 0 }
+            add("unsent.keep", needed, keep)
+        }
+
+        // The notification recaller: instance (session, message id, push id,
+        // offline id)Z that logs under NotificationRecaller. It also sees
+        // unsends that never pass through the revoke dispatcher, so it records
+        // the id and keeps the notification.
+        if ("unsent.recall" in needed) {
+            val recall = findMethods(dex, "unsent.recall") {
+                matcher {
+                    returnType("boolean")
+                    paramCount(4)
+                    paramTypes(
+                        FB_USER_SESSION,
+                        "java.lang.String",
+                        "java.lang.String",
+                        "java.lang.String",
+                    )
+                    usingStrings(NOTIFICATION_RECALLER)
+                }
+            }.filter { it.modifiers and Modifier.STATIC == 0 }
+            add("unsent.recall", needed, recall)
+        }
+
+        if ("unsent.id" !in needed && "unsent.state" !in needed && "unsent.text" !in needed) return
+
+        // The row wrapper's debug formatter names text=, message_id= and
+        // is_unsent= right after the getter that produces each value. DexKit
+        // keeps opCodes, invokes and usingStrings in instruction order, so the
+        // call before each name is that field's getter.
+        val formatter = findMethods(dex, "unsent.getters") {
+            matcher { usingStrings(UNSENT_FIELD) }
+        }.firstOrNull { method ->
+            runCatching { method.usingStrings }
+                .getOrDefault(emptyList())
+                .containsAll(UNSENT_FIELDS)
+        } ?: run {
+            Log.w(TAG, "keep unsent: row formatter not found")
+            return
+        }
+
+        val getters = fieldGetters(formatter)
+        val idGetter = getters["message_id="]
+        val stateGetter = getters["is_unsent="]
+        val textGetter = getters["text="]
+        if (idGetter == null || stateGetter == null) {
+            Log.w(TAG, "keep unsent: row getters not found")
+            return
+        }
+
+        val wrapper = wrapperClass(dex, formatter) ?: run {
+            Log.w(TAG, "keep unsent: row wrapper not found")
+            return
+        }
+        val wrapperMethods = runCatching { wrapper.methods }
+            .getOrElse { emptyList() }
+
+        // The wrapper serves the row interface through one (int) adapter per
+        // getter, either under the same name or by calling the interface method.
+        fun adapter(raw: MethodData, returnType: String): MethodData? {
+            val candidates = wrapperMethods.filter {
+                it.paramTypeNames == listOf("int") &&
+                    it.returnTypeName == returnType &&
+                    it.modifiers and Modifier.STATIC == 0
+            }
+            return candidates.firstOrNull { it.name == raw.name }
+                ?: candidates.firstOrNull { method ->
+                    method.invokes.any {
+                        it.name == raw.name && it.returnTypeName == returnType
+                    }
+                }
+        }
+
+        adapter(idGetter, "java.lang.String")?.let { add("unsent.id", needed, listOf(it)) }
+        adapter(stateGetter, "boolean")?.let { add("unsent.state", needed, listOf(it)) }
+        textGetter?.let { adapter(it, "java.lang.String") }
+            ?.let { add("unsent.text", needed, listOf(it)) }
+    }
+
+    /**
+     * Rebuilds the patch's debug-string pairing from DexKit's ordered lists.
+     *
+     * `opCodes`, `invokes` and `usingStrings` each preserve instruction order,
+     * so walking the opcodes and advancing a cursor for every const-string and
+     * every invoke recovers which method produced which field.
+     */
+    private fun fieldGetters(formatter: MethodData): Map<String, MethodData> {
+        val opCodes = runCatching { formatter.opCodes }.getOrElse { emptyList() }
+        val strings = runCatching { formatter.usingStrings }.getOrElse { emptyList() }
+        val invokes = runCatching { formatter.invokes }.getOrElse { emptyList() }
+        var stringAt = 0
+        var invokeAt = 0
+        var last: MethodData? = null
+        val out = mutableMapOf<String, MethodData>()
+
+        for (op in opCodes) {
+            when {
+                op == 0x1a || op == 0x1b -> {
+                    val value = strings.getOrNull(stringAt++) ?: continue
+                    val getter = last ?: continue
+                    when (value) {
+                        "text=" -> if (getter.returnTypeName == "java.lang.String") {
+                            out[value] = getter
+                            last = null
+                        }
+                        "message_id=" -> if (getter.returnTypeName == "java.lang.String") {
+                            out[value] = getter
+                            last = null
+                        }
+                        "is_unsent=" -> if (getter.returnTypeName == "boolean") {
+                            out[value] = getter
+                            last = null
+                        }
+                    }
+                }
+                // The row getters are interface calls. Every invoke kind that
+                // DexKit counts (35c/3rc: 0x6e..0x72, 0x74..0x78, 0xfc, 0xfd)
+                // still advances the cursor so the two ordered lists stay
+                // aligned. invoke-polymorphic is not counted by DexKit and is
+                // not expected in this formatter.
+                op in 0x6e..0x72 || op in 0x74..0x78 || op == 0xfc || op == 0xfd -> {
+                    val invoked = invokes.getOrNull(invokeAt++)
+                    if (op == 0x72) last = invoked
+                }
+            }
+        }
+        return out
+    }
+
+    /**
+     * The abstract row wrapper: one interface, one non-static `List` field and
+     * a `getCount()I`. The formatter's parameter type (the wrapper interface)
+     * breaks a tie when more than one class has that shape.
+     */
+    private fun wrapperClass(dex: DexKitBridge, formatter: MethodData): ClassData? {
+        val candidates = runCatching {
+            dex.findClass {
+                matcher {
+                    modifiers = Modifier.ABSTRACT
+                    interfaceCount(1)
+                    addFieldForType("java.util.List")
+                    methods {
+                        add {
+                            name = "getCount"
+                            paramCount(0)
+                            returnType("int")
+                        }
+                    }
+                }
+            }
+        }.getOrElse {
+            Log.w(TAG, "keep unsent: wrapper query failed: ${it.message}")
+            return null
+        }
+
+        val shaped = candidates.filter { clazz ->
+            runCatching {
+                val instanceFields = clazz.fields.filter { it.modifiers and Modifier.STATIC == 0 }
+                instanceFields.size == 1 &&
+                    instanceFields[0].typeName == "java.util.List" &&
+                    clazz.methods.any {
+                        it.name == "getCount" &&
+                            it.returnTypeName == "int" &&
+                            it.paramTypeNames.isEmpty()
+                    }
+            }.getOrDefault(false)
+        }
+        if (shaped.size == 1) return shaped[0]
+
+        val visible = formatter.paramTypeNames.toSet()
+        return shaped.singleOrNull { clazz ->
+            clazz.name in visible || clazz.interfaces.any { it.name in visible }
+        }
+    }
+
     // ----------------------------------------------------------------- helpers
 
     /**
@@ -443,6 +635,12 @@ class DexKitEngine(private val apkPath: String) {
         private const val INBOX_EVENT = "inbox2_vr"
         private const val AI_SUMMARY_PILL = "AiSummaryFloatingPillEventHandler"
         private const val STORY_FINISHED = "story_playback_finished"
+
+        private const val INTENT = "android.content.Intent"
+        private const val REVOKE_ACTION = "ACTION_REVOKE_MESSAGE"
+        private const val NOTIFICATION_RECALLER = "NotificationRecaller"
+        private const val UNSENT_FIELD = "is_unsent="
+        private val UNSENT_FIELDS = listOf("text=", "message_id=", "is_unsent=")
 
         private val AI_SUMMARY_PARAMS = listOf(
             "com.facebook.messaging.model.threadkey.ThreadKey",

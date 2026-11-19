@@ -85,11 +85,17 @@ waits on the suppressed job.
 These change message state, not just visibility. Expect more testing per
 feature and a longer observation window before enabling the next one.
 
-- Keep unsent messages
+- **Keep unsent messages — done.** `unsent.keep`, `unsent.recall`,
+  `unsent.id`, `unsent.state` and `unsent.text`; ids persist in
+  `files/hush_xposed/kept_unsent.txt` on Messenger's data directory.
 - Ignore the swipe up for disappearing messages
 - Hide Your story when sharing
 - Hide Mark as read
 - Keep a message log
+
+The notification clear path (`unsent_clear`) is intentionally left for a later
+increment: the chat row already stays, and the clear site is a mid-method
+register injection rather than a whole-method hook.
 
 ### Out of scope for now
 

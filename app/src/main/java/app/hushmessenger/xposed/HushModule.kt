@@ -66,6 +66,7 @@ class HushModule : XposedModule() {
                 module = this,
                 classLoader = param.classLoader,
                 state = state,
+                dataDir = File(param.applicationInfo.dataDir, "files"),
             ).install(resolved)
         }.onFailure {
             log(Log.ERROR, TAG, "hook installation failed", it)
@@ -199,6 +200,17 @@ class HushModule : XposedModule() {
             // the window-flag helper and Android 14's capture callback need DEX
             // matching.
             addAll(listOf("screenshots.window_helper", "screenshots.capture"))
+        }
+        if (state.isOn(Features.KEEP_UNSENT)) {
+            addAll(
+                listOf(
+                    "unsent.keep",
+                    "unsent.recall",
+                    "unsent.id",
+                    "unsent.state",
+                    "unsent.text",
+                ),
+            )
         }
     }
 

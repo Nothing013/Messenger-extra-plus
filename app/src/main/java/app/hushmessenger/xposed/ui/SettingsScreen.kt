@@ -59,6 +59,10 @@ private val privacyFeatures: List<Feature> = listOf(
     Features.SCREENSHOTS,
 ).mapNotNull(Features::byKey)
 
+private val messageFeatures: List<Feature> = listOf(
+    Features.KEEP_UNSENT,
+).mapNotNull(Features::byKey)
+
 private val cleanupFeatures: List<Feature> = listOf(
     Features.ADS,
     Features.META_AI,
@@ -220,6 +224,16 @@ fun SettingsScreen() {
                 FeatureGroup(
                     title = "Privacy",
                     features = privacyFeatures,
+                    values = values,
+                    enabled = meta.connected,
+                    onToggle = onToggle,
+                )
+            }
+
+            item {
+                FeatureGroup(
+                    title = "Messages",
+                    features = messageFeatures,
                     values = values,
                     enabled = meta.connected,
                     onToggle = onToggle,
